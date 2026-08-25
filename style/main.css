@@ -684,21 +684,22 @@ body {
 }
 
 .auth-logo-badge {
-  width: 76px;
-  height: 76px;
+  width: 88px;
+  height: 88px;
   background: #ffffff;
   border-radius: 50%;
-  box-shadow: var(--shadow-md);
-  border: 3px solid #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+  border: 4px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: -4rem auto 1.5rem auto;
+  margin: -4.5rem auto 1.5rem auto;
+  padding: 6px;
 }
 
 .auth-logo-badge img {
-  width: 48px;
-  height: 48px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
