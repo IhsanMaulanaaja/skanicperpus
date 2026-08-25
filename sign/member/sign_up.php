@@ -1,159 +1,214 @@
 <?php 
 require "../../loginSystem/connect.php";
-if(isset($_POST["signUp"]) ) {
-  
-  if(signUp($_POST) > 0) {
-    echo "<script>
-    alert('Sign Up berhasil!')
-    </script>";
-  }else {
-    echo "<script>
-    alert('Sign Up gagal!')
-    </script>";
-  }
-  
-}
 
+$success = false;
+$errorMsg = "";
+
+if(isset($_POST["signUp"])) {
+  $result = signUp($_POST);
+  if($result > 0) {
+    $success = true;
+  }
+}
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-     <script src="https://kit.fontawesome.com/de8de52639.js" crossorigin="anonymous"></script>
-     <title>Sign Up || Member</title>
-    </head>
+    <title>Daftar Akun Siswa - SkanicPerpus</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../style/main.css">
+    <link rel="icon" href="../../assets/logoPerpus.jpg" type="image/jpeg">
+  </head>
   <body>
-  <div class="container">
-    <div class="card p-2 mt-5">
-      <div class="position-absolute top-0 start-50 translate-middle">
-        <img src="../../assets/memberLogo.png" alt="adminLogo" width="85px">
+    <div class="auth-wrapper" style="padding-top: 3rem; padding-bottom: 3rem;">
+      <div class="auth-card" style="max-width: 650px;">
+        <!-- Logo Badge -->
+        <div class="auth-logo-badge">
+          <img src="../../assets/memberLogo.png" alt="Member Icon" onerror="this.src='../../assets/logo_skanic.png'">
+        </div>
+
+        <div class="text-center mb-4">
+          <span class="badge-status primary mb-2"><i class="fa-solid fa-user-plus"></i> Registrasi Member</span>
+          <h3 class="fw-bold text-dark">Buat Akun Siswa</h3>
+          <p class="text-muted small">Lengkapi data diri Anda untuk mulai meminjam buku di perpustakaan</p>
+        </div>
+
+        <?php if($success) : ?>
+          <div class="alert alert-success d-flex align-items-center justify-content-between p-3 rounded-3 mb-4" role="alert">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fa-solid fa-circle-check fs-4"></i>
+              <div>
+                <strong>Pendaftaran Berhasil!</strong>
+                <div class="small">Akun Anda telah aktif, silakan masuk.</div>
+              </div>
+            </div>
+            <a href="sign_in.php" class="btn btn-success btn-sm">Login Sekarang</a>
+          </div>
+        <?php endif; ?>
+
+        <form action="" method="post" class="needs-validation" novalidate>
+          <div class="row g-3">
+            <!-- NISN & Nama Lengkap -->
+            <div class="col-md-6">
+              <label for="nisn" class="form-label">NISN</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-hashtag"></i></span>
+                <input type="number" class="form-control" name="nisn" id="nisn" placeholder="Contoh: 0071234567" required>
+                <div class="invalid-feedback">NISN wajib diisi!</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="nama" class="form-label">Nama Lengkap</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                <input type="text" class="form-control" id="nama" name="nama" placeholder="Masukkan nama lengkap Anda" required>
+                <div class="invalid-feedback">Nama wajib diisi!</div>
+              </div>
+            </div>
+
+            <!-- Password & Confirm Password -->
+            <div class="col-md-6">
+              <label for="password" class="form-label">Password</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Buat password" required>
+                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="password" tabindex="-1" title="Lihat/Sembunyikan Password">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <div class="invalid-feedback">Password wajib diisi!</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="confirmPw" class="form-label">Konfirmasi Password</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                <input type="password" class="form-control" id="confirmPw" name="confirmPw" placeholder="Ulangi password" required>
+                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="confirmPw" tabindex="-1" title="Lihat/Sembunyikan Password">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <div class="invalid-feedback">Konfirmasi password wajib diisi!</div>
+              </div>
+            </div>
+
+            <!-- Gender & Kelas -->
+            <div class="col-md-6">
+              <label for="jenis_kelamin" class="form-label">Jenis Kelamin</label>
+              <select class="form-select" id="jenis_kelamin" name="jenis_kelamin" required>
+                <option value="" selected disabled>Pilih Jenis Kelamin</option>
+                <option value="Laki laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+              <div class="invalid-feedback">Pilih jenis kelamin!</div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="kelas" class="form-label">Kelas</label>
+              <select class="form-select" id="kelas" name="kelas" required>
+                <option value="" selected disabled>Pilih Tingkat Kelas</option>
+                <option value="X">Kelas X</option>
+                <option value="XI">Kelas XI</option>
+                <option value="XII">Kelas XII</option>
+              </select>
+              <div class="invalid-feedback">Pilih tingkat kelas!</div>
+            </div>
+
+            <!-- Jurusan -->
+            <div class="col-12">
+              <label for="jurusan" class="form-label">Jurusan / Kompetensi Keahlian</label>
+              <select class="form-select" id="jurusan" name="jurusan" required>
+                <option value="" selected disabled>Pilih Jurusan Anda</option>
+                <option value="Pengembangan Perangkat Lunak dan Gim">Pengembangan Perangkat Lunak dan Gim (PPLG)</option>
+                <option value="Broadcasting & Perfilman">Broadcasting & Perfilman (BCP)</option>
+                <option value="Animasi">Animasi (ANM)</option>
+                <option value="Teknik Otomotif">Teknik Otomotif (TO)</option>
+                <option value="Teknik Pengelasan & Fabrikasi Logam">Teknik Pengelasan & Fabrikasi Logam (TPL)</option>
+              </select>
+              <div class="invalid-feedback">Pilih jurusan!</div>
+            </div>
+
+            <!-- No Telp & Tanggal Pendaftaran -->
+            <div class="col-md-6">
+              <label for="no_tlp" class="form-label">No. Telepon / WhatsApp</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                <input type="tel" class="form-control" name="no_tlp" id="no_tlp" placeholder="08xxxxxxxxxx" required>
+                <div class="invalid-feedback">No telepon wajib diisi!</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="tgl_pendaftaran" class="form-label">Tanggal Pendaftaran</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
+                <input type="date" class="form-control" name="tgl_pendaftaran" id="tgl_pendaftaran" value="<?php echo date('Y-m-d'); ?>" required>
+                <div class="invalid-feedback">Tanggal pendaftaran wajib diisi!</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4 pt-2">
+            <button class="btn btn-modern-primary flex-grow-1 py-2" type="submit" name="signUp">
+              <i class="fa-solid fa-user-plus me-1"></i> Daftar Sekarang
+            </button>
+            <button type="reset" class="btn btn-modern-secondary py-2">
+              <i class="fa-solid fa-rotate-left"></i> Reset
+            </button>
+          </div>
+
+          <div class="text-center mt-3 pt-3 border-top">
+            <p class="text-muted small mb-0">Sudah memiliki akun? <a href="sign_in.php" class="text-primary fw-bold text-decoration-none">Masuk Disini</a></p>
+          </div>
+        </form>
       </div>
-      <h1 class="pt-5 text-center fw-bold">Sign Up</h1>
-      <hr>
-    <form action="" method="post" class="row g-3 p-4 needs-validation" novalidate>
-      
-    <label for="validationCustom01" class="form-label">NISN</label>
-    <div class="input-group mt-0">
-    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-hashtag"></i></span>
-    <input type="number" class="form-control" name="nisn" id="validationCustom01" required>
-    <div class="invalid-feedback">
-        Nisn wajib diisi!
     </div>
-  </div>
-    <label for="validationCustom01" class="form-label">Kode Member</label>
-  <div class="input-group mt-0">
-    <input type="text" class="form-control" name="kode_member" id="validationCustom01" required>
-    <div class="invalid-feedback">
-        Kode member wajib diisi!
-    </div>
-  </div>
-  <label for="validationCustom02" class="form-label">Nama Lengkap</label>
-  <div class="input-group mt-0">
-    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-user"></i></span>
-    <input type="text" class="form-control" id="validationCustom02" name="nama" required>
-    <div class="invalid-feedback">
-        Nama wajib diisi!
-    </div>
-  </div>
-  <label for="validationCustom02" class="form-label">Password</label>
-  <div class="input-group mt-0">
-    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-lock"></i></span>
-    <input type="password" class="form-control" id="validationCustom02" name="password" required>
-    <div class="invalid-feedback">
-        Password wajib diisi!
-    </div>
-  </div>
-  <label for="validationCustom02" class="form-label">Confirm Password</label>
-  <div class="input-group mt-0">
-    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-lock"></i></span>
-    <input type="password" class="form-control" id="validationCustom02" name="confirmPw" required>
-    <div class="invalid-feedback">
-        Konfirmasi password wajib diisi!
-    </div>
-  </div>
-  
-  <div class="col input-group mb-2">
-  <label class="input-group-text" for="inputGroupSelect01">Gender</label>
-  <select class="form-select" id="inputGroupSelect01" name="jenis_kelamin">
-    <option selected>Choose</option>
-    <option value="Laki laki">Laki laki</option>
-    <option value="Perempuan">Perempuan</option>
-    </select>
-  </div>
-  
-  <div class="col input-group mb-2">
-  <label class="input-group-text" for="inputGroupSelect01">Kelas</label>
-  <select class="form-select" id="inputGroupSelect01" name="kelas">
-    <option selected>Choose</option>
-    <option value="X">X</option>
-    <option value="XI">XI</option>
-    <option value="XII">XII</option>
-    </select>
-  </div>
-  
-  <div class="input-group mb-2">
-  <label class="input-group-text" for="inputGroupSelect01">Jurusan</label>
-  <select class="form-select" id="inputGroupSelect01" name="jurusan">
-    <option selected>Choose</option>
-    <option value="Pengembangan Perangkat Lunak dan Gim">Pengembangan Perangkat Lunak dan Gim</option>
-    <option value="Broadcasting & Perfilman">Broadcasting & Perfilman</option>
-    <option value="Animasi">Animasi</option>
-    <option value="Teknik Otomotif">Teknik Otomotif</option>
-    <option value="Tekni Pengelasan & Fabrikasi Logam">Teknik Pengelasan & Fabrikasi Logam</option>
-    </select>
-  </div>
-  
-  <label for="validationCustom01" class="form-label">No Telepon</label>
-  <div class="input-group mt-0">
-    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-phone"></i></span>
-    <input type="number" class="form-control" name="no_tlp" id="validationCustom01" required>
-    <div class="invalid-feedback">
-        No telepon wajib diisi!
-    </div>
-  </div>
-  
-  <label for="validationCustom01" class="form-label">Tanggal Pendaftaran</label>
-  <div class="input-group mt-0">
-    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-calendar-days"></i></span>
-    <input type="date" class="form-control" name="tgl_pendaftaran" id="validationCustom01" required>
-    <div class="invalid-feedback">
-        Tanggal pendaftaran wajib diisi!
-    </div>
-  </div>
-  
-  <div class="col-12">
-    <button class="btn btn-primary" type="submit" name="signUp">Sign Up</button>
-    <input type="reset" class="btn btn-warning text-light" value="Reset">
-  </div>
-  <p>Already have an account? <a href="sign_in.php" class="text-decoration-none text-primary">Sign In</a></p>
-</form>
-</div>
-  </div>
-</body>
-  
-<script>
-    // Example starter JavaScript for disabling form submissions if there are invalid fields
-(() => {
-  'use strict'
 
-  // Fetch all the forms we want to apply custom Bootstrap validation styles to
-  const forms = document.querySelectorAll('.needs-validation')
+    <script>
+      (() => {
+        'use strict'
+        const forms = document.querySelectorAll('.needs-validation')
+        Array.from(forms).forEach(form => {
+          form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+          }, false)
+        })
 
-  // Loop over them and prevent submission
-  Array.from(forms).forEach(form => {
-    form.addEventListener('submit', event => {
-      if (!form.checkValidity()) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
-
-      form.classList.add('was-validated')
-    }, false)
-  })
-})()
-  </script>
-  
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+        // Toggle password visibility
+        document.querySelectorAll('.toggle-password').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+            if (input) {
+              if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+              } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+              }
+            }
+          });
+        });
+      })()
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
 </html>

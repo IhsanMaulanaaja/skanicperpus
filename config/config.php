@@ -96,39 +96,31 @@ function upload() {
 
 // MENAMPILKAN SESUATU SESUAI DENGAN INPUTAN USER PADA * SEARCH ENGINE *
 function search($keyword) {
+  global $connection;
+  $safeKeyword = mysqli_real_escape_string($connection, $keyword);
   // search data buku
   $querySearch = "SELECT * FROM buku 
   WHERE
-  judul LIKE '%$keyword%' OR
-  kategori LIKE '%$keyword%'
+  judul LIKE '%$safeKeyword%' OR
+  kategori LIKE '%$safeKeyword%' OR
+  pengarang LIKE '%$safeKeyword%' OR
+  penerbit LIKE '%$safeKeyword%'
   ";
   return queryReadData($querySearch);
-  
-  // search data pengembalian || member
-  $dataPengembalian = "SELECT * FROM pengembalian 
-  WHERE 
-  id_pengembalian '%$keyword%' OR
-  id_buku LIKE '%$keyword%' OR
-  judul LIKE '%$keyword%' OR
-  kategori LIKE '%$keyword%' OR
-  nisn LIKE '%$keyword%' OR
-  nama LIKE '%$keyword%' OR
-  nama_admin LIKE '%$keyword%' OR
-  tgl_pengembalian LIKE '%$keyword%' OR
-  keterlambatan LIKE '%$keyword%' OR
-  denda LIKE '%$keyword%'";
-  return queryReadData($dataPengembalian);
 }
 
 function searchMember ($keyword) {
-     // search member terdaftar || admin
-   $searchMember = "SELECT * FROM member WHERE 
-   nisn LIKE '%$keyword%' OR 
-   kode_member LIKE '%$keyword%' OR
-   nama LIKE '%$keyword%' OR 
-   jurusan LIKE '%$keyword%'
-   ";
-   return queryReadData($searchMember);
+  global $connection;
+  $safeKeyword = mysqli_real_escape_string($connection, $keyword);
+  // search member terdaftar || admin
+  $searchMember = "SELECT * FROM member WHERE 
+  nisn LIKE '%$safeKeyword%' OR 
+  kode_member LIKE '%$safeKeyword%' OR
+  nama LIKE '%$safeKeyword%' OR 
+  jurusan LIKE '%$safeKeyword%' OR
+  kelas LIKE '%$safeKeyword%'
+  ";
+  return queryReadData($searchMember);
 }
 
 
@@ -202,7 +194,187 @@ function deleteDataPengembalian($idPengembalian) {
 }
 
 
+// Tambah Akun Admin Baru (Hanya bisa dilakukan oleh Admin)
+function tambahAdmin($dataAdmin) {
+  global $connection;
+  
+  $nama = mysqli_real_escape_string($connection, strtolower(trim($dataAdmin["nama_admin"])));
+  $kodeAdmin = mysqli_real_escape_string($connection, trim($dataAdmin["kode_admin"]));
+  $password = trim($dataAdmin["password"]);
+  $confirmPw = trim($dataAdmin["confirmPw"]);
+  $noTlp = mysqli_real_escape_string($connection, trim($dataAdmin["no_tlp"]));
+  
+  // Cek nama_admin sudah ada
+  $cekNama = mysqli_query($connection, "SELECT id FROM admin WHERE nama_admin = '$nama'");
+  if(mysqli_num_rows($cekNama) > 0) {
+    echo "<script>alert('Nama Admin sudah digunakan! Silakan gunakan nama lain.');</script>";
+    return 0;
+  }
+  
+  // Cek kode_admin sudah ada
+  $cekKode = mysqli_query($connection, "SELECT id FROM admin WHERE kode_admin = '$kodeAdmin'");
+  if(mysqli_num_rows($cekKode) > 0) {
+    echo "<script>alert('Kode Admin sudah digunakan! Silakan gunakan kode lain.');</script>";
+    return 0;
+  }
+  
+  // Cek konfirmasi password
+  if($password !== $confirmPw) {
+    echo "<script>alert('Password dan Konfirmasi Password tidak sesuai!');</script>";
+    return 0;
+  }
+  
+  $queryInsert = "INSERT INTO admin (nama_admin, password, kode_admin, no_tlp) VALUES ('$nama', '$password', '$kodeAdmin', '$noTlp')";
+  mysqli_query($connection, $queryInsert);
+  return mysqli_affected_rows($connection);
+}
+
+// Hapus Akun Admin
+function deleteAdmin($idAdmin) {
+  global $connection;
+  
+  // Pastikan tidak menghapus admin terakhir
+  $count = mysqli_fetch_row(mysqli_query($connection, "SELECT COUNT(*) FROM admin"))[0] ?? 0;
+  if($count <= 1) {
+    echo "<script>alert('Tidak dapat menghapus admin! Harus ada setidaknya 1 akun admin di sistem.');</script>";
+    return 0;
+  }
+  
+  $safeId = (int)$idAdmin;
+  $queryDelete = "DELETE FROM admin WHERE id = $safeId";
+  mysqli_query($connection, $queryDelete);
+  return mysqli_affected_rows($connection);
+}
+
 // === FUNCTION KHUSUS ADMIN END ===
+
+
+// === FUNCTION PROFIL & AVATAR START ===
+
+// Upload Foto Profil (Avatar)
+function uploadAvatar($inputName = "foto", $default = "default_avatar.png") {
+  $namaFile = $_FILES[$inputName]['name'];
+  $ukuranFile = $_FILES[$inputName]['size'];
+  $error = $_FILES[$inputName]['error'];
+  $tmpName = $_FILES[$inputName]['tmp_name'];
+
+  if($error === 4) {
+    return $default; // tidak ada file baru yang diunggah
+  }
+
+  $ekstensiGambarValid = ['jpg', 'jpeg', 'png', 'webp'];
+  $ekstensiGambar = explode('.', $namaFile);
+  $ekstensiGambar = strtolower(end($ekstensiGambar));
+
+  if(!in_array($ekstensiGambar, $ekstensiGambarValid)) {
+    echo "<script>alert('Format file foto tidak didukung! Gunakan format JPG, JPEG, PNG, atau WEBP.');</script>";
+    return false;
+  }
+
+  if($ukuranFile > 3145728) { // 3 MB max
+    echo "<script>alert('Ukuran foto terlalu besar! Maksimal 3MB.');</script>";
+    return false;
+  }
+
+  $namaFileBaru = uniqid('avatar_') . '.' . $ekstensiGambar;
+  $targetDir = __DIR__ . '/../imgDB/avatar/';
+  if(!is_dir($targetDir)) {
+    mkdir($targetDir, 0777, true);
+  }
+
+  move_uploaded_file($tmpName, $targetDir . $namaFileBaru);
+  return $namaFileBaru;
+}
+
+// Update Profil Admin
+function updateProfilAdmin($data, $files) {
+  global $connection;
+
+  $id = (int)$data["id"];
+  $nama = mysqli_real_escape_string($connection, strtolower(trim($data["nama_admin"])));
+  $noTlp = mysqli_real_escape_string($connection, trim($data["no_tlp"]));
+  $passwordBaru = trim($data["password_baru"] ?? "");
+  $confirmPw = trim($data["confirm_password"] ?? "");
+  $fotoLama = $data["fotoLama"] ?? "default_admin.png";
+
+  // Cek upload foto baru
+  if(isset($files["foto"]) && $files["foto"]["error"] !== 4) {
+    $foto = uploadAvatar("foto", $fotoLama);
+    if(!$foto) {
+      return 0;
+    }
+  } else {
+    $foto = $fotoLama;
+  }
+
+  if(!empty($passwordBaru)) {
+    if($passwordBaru !== $confirmPw) {
+      echo "<script>alert('Password baru dan konfirmasi password tidak cocok!');</script>";
+      return 0;
+    }
+    $safePw = mysqli_real_escape_string($connection, $passwordBaru);
+    $query = "UPDATE admin SET nama_admin = '$nama', no_tlp = '$noTlp', password = '$safePw', foto = '$foto' WHERE id = $id";
+  } else {
+    $query = "UPDATE admin SET nama_admin = '$nama', no_tlp = '$noTlp', foto = '$foto' WHERE id = $id";
+  }
+
+  mysqli_query($connection, $query);
+
+  // Update session
+  $_SESSION["admin"]["nama_admin"] = $nama;
+  $_SESSION["admin"]["no_tlp"] = $noTlp;
+  $_SESSION["admin"]["foto"] = $foto;
+
+  return 1;
+}
+
+// Update Profil Member (Siswa)
+function updateProfilMember($data, $files) {
+  global $connection;
+
+  $nisn = (int)$data["nisn"];
+  $nama = mysqli_real_escape_string($connection, strtolower(trim($data["nama"])));
+  $kelas = mysqli_real_escape_string($connection, trim($data["kelas"]));
+  $jurusan = mysqli_real_escape_string($connection, trim($data["jurusan"]));
+  $noTlp = mysqli_real_escape_string($connection, trim($data["no_tlp"]));
+  $passwordBaru = trim($data["password_baru"] ?? "");
+  $confirmPw = trim($data["confirm_password"] ?? "");
+  $fotoLama = $data["fotoLama"] ?? "default_member.png";
+
+  // Cek upload foto baru
+  if(isset($files["foto"]) && $files["foto"]["error"] !== 4) {
+    $foto = uploadAvatar("foto", $fotoLama);
+    if(!$foto) {
+      return 0;
+    }
+  } else {
+    $foto = $fotoLama;
+  }
+
+  if(!empty($passwordBaru)) {
+    if($passwordBaru !== $confirmPw) {
+      echo "<script>alert('Password baru dan konfirmasi password tidak cocok!');</script>";
+      return 0;
+    }
+    $passwordHash = password_hash($passwordBaru, PASSWORD_DEFAULT);
+    $query = "UPDATE member SET nama = '$nama', kelas = '$kelas', jurusan = '$jurusan', no_tlp = '$noTlp', password = '$passwordHash', foto = '$foto' WHERE nisn = $nisn";
+  } else {
+    $query = "UPDATE member SET nama = '$nama', kelas = '$kelas', jurusan = '$jurusan', no_tlp = '$noTlp', foto = '$foto' WHERE nisn = $nisn";
+  }
+
+  mysqli_query($connection, $query);
+
+  // Update session
+  $_SESSION["member"]["nama"] = $nama;
+  $_SESSION["member"]["kelas"] = $kelas;
+  $_SESSION["member"]["jurusan"] = $jurusan;
+  $_SESSION["member"]["no_tlp"] = $noTlp;
+  $_SESSION["member"]["foto"] = $foto;
+
+  return 1;
+}
+
+// === FUNCTION PROFIL & AVATAR END ===
 
 
 // === FUNCTION KHUSUS MEMBER START ===

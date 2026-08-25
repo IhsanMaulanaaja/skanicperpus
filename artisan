@@ -1,0 +1,34 @@
+<?php
+/**
+ * Simple Artisan Compatibility Script for SkanicPerpus (Native PHP)
+ * Allows running `php artisan serve` in this project.
+ */
+
+$command = $argv[1] ?? 'serve';
+
+if ($command === 'serve') {
+    $host = '127.0.0.1';
+    $port = 8000;
+
+    foreach ($argv as $arg) {
+        if (strpos($arg, '--port=') === 0) {
+            $port = substr($arg, 7);
+        } elseif (strpos($arg, '--host=') === 0) {
+            $host = substr($arg, 7);
+        }
+    }
+
+    echo "\n======================================================\n";
+    echo "  SkanicPerpus Development Server Running\n";
+    echo "  Local:   http://{$host}:{$port}\n";
+    echo "  Press Ctrl+C to stop the server.\n";
+    echo "======================================================\n\n";
+
+    passthru(escapeshellcmd(PHP_BINARY) . " -S " . escapeshellarg("{$host}:{$port}"));
+} else {
+    echo "Command '{$command}' is not recognized. This is a Native PHP project.\n";
+    echo "Usage:\n";
+    echo "  php artisan serve              Start development server on port 8000\n";
+    echo "  php artisan serve --port=8080  Start server on custom port\n";
+    exit(1);
+}

@@ -1,76 +1,209 @@
 <?php 
+session_start();
+
+if(!isset($_SESSION["signIn"]) || !isset($_SESSION["admin"])) {
+  header("Location: ../../sign/admin/sign_in.php");
+  exit;
+}
+
 require "../../config/config.php"; 
-$dataDenda = queryReadData("SELECT pengembalian.id_pengembalian, pengembalian.id_buku, buku.judul, pengembalian.nisn, member.nama, member.jurusan, admin.nama_admin, pengembalian.buku_kembali, pengembalian.keterlambatan, pengembalian.denda
+
+$tgl_dari = $_GET["tgl_dari"] ?? "";
+$tgl_sampai = $_GET["tgl_sampai"] ?? "";
+$keyword = $_GET["keyword"] ?? "";
+
+$queryStr = "SELECT pengembalian.id_pengembalian, pengembalian.id_buku, buku.judul, buku.cover, pengembalian.nisn, member.nama, member.kelas, member.jurusan, member.no_tlp, member.foto, admin.nama_admin, pengembalian.buku_kembali, pengembalian.keterlambatan, pengembalian.denda
 FROM pengembalian
 INNER JOIN buku ON pengembalian.id_buku = buku.id_buku
 INNER JOIN member ON pengembalian.nisn = member.nisn
 INNER JOIN admin ON pengembalian.id_admin = admin.id
-WHERE pengembalian.denda > 0");
-?>
+WHERE pengembalian.denda > 0";
 
+if(!empty($tgl_dari)) {
+  $safeDari = mysqli_real_escape_string($connection, $tgl_dari);
+  $queryStr .= " AND pengembalian.buku_kembali >= '$safeDari'";
+}
+if(!empty($tgl_sampai)) {
+  $safeSampai = mysqli_real_escape_string($connection, $tgl_sampai);
+  $queryStr .= " AND pengembalian.buku_kembali <= '$safeSampai'";
+}
+if(!empty($keyword)) {
+  $safeKw = mysqli_real_escape_string($connection, $keyword);
+  $queryStr .= " AND (member.nama LIKE '%$safeKw%' OR buku.judul LIKE '%$safeKw%' OR pengembalian.nisn LIKE '%$safeKw%')";
+}
+
+$queryStr .= " ORDER BY pengembalian.denda DESC";
+$dataDenda = queryReadData($queryStr);
+?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-     <script src="https://kit.fontawesome.com/de8de52639.js" crossorigin="anonymous"></script>
-     <title>Kelola denda buku || admin</title>
+    <title>Kelola Denda Buku - Admin SkanicPerpus</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../style/main.css">
+    <link rel="icon" href="../../assets/logoPerpus.jpg" type="image/jpeg">
   </head>
   <body>
-    <nav class="navbar fixed-top bg-body-tertiary shadow-sm">
-      <div class="container-fluid p-3">
-        <a class="navbar-brand" href="#">
-          <img src="../../assets/SkanicLogin.png" alt="logo" width="120px">
+    
+    <!-- Modern Admin Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-modern fixed-top">
+      <div class="container-fluid px-lg-4">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="../dashboardAdmin.php">
+          <img src="../../assets/SkanicLogin.png" alt="SkanicPerpus" height="46" onerror="this.src='../../assets/logo_skanic.png'">
         </a>
-        
-        <a class="btn btn-tertiary" href="../dashboardAdmin.php">Dashboard</a>
+
+        <div class="d-flex align-items-center gap-2 ms-auto">
+          <a class="btn btn-modern-secondary d-inline-flex align-items-center gap-2" href="../dashboardAdmin.php">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+          </a>
+        </div>
       </div>
     </nav>
-    
-    <div class="p-4 mt-5">
-      <div class="mt-5">
-        <caption>List of denda</caption>
-          <div class="table-responsive mt-3">
-    <table class="table table-striped table-hover">
-      <thead class="text-center">
-      <tr>
-        <th class="bg-primary text-light">id buku</th>
-        <th class="bg-primary text-light">Judul buku</th>
-        <th class="bg-primary text-light">Nisn</th>
-        <th class="bg-primary text-light">Nama siswa</th>
-        <th class="bg-primary text-light">Jurusan</th>
-        <th class="bg-primary text-light">Nama admin</th>
-        <th class="bg-primary text-light">Hari pengembalian</th>
-        <th class="bg-primary text-light">Keterlambatan</th>
-        <th class="bg-primary text-light">Denda</th>
-      </tr>
-      </thead>
-        <?php foreach ($dataDenda as $item) : ?>
-      <tr>
-        <td><?= $item["id_buku"]; ?></td>
-        <td><?= $item["judul"]; ?></td>
-        <td><?= $item["nisn"]; ?></td>
-        <td><?= $item["nama"]; ?></td>
-        <td><?= $item["jurusan"]; ?></td>
-        <td><?= $item["nama_admin"]; ?></td>
-        <td><?= $item["buku_kembali"]; ?></td>
-        <td><?= $item["keterlambatan"]; ?></td>
-        <td><?= $item["denda"]; ?></td>
-      </tr>
-        <?php endforeach; ?>
-    </table>
-    </div>
-   </div>
-  </div>
-  
-  <footer class="fixed-bottom shadow-lg bg-subtle p-3">
-      <div class="container-fluid d-flex justify-content-between">
-      <p class="mt-2">Created by <span class="text-primary">Ihsan Maulana</span> © 2025</p>
-      <p class="mt-2">versi 1.0</p>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+      <div class="container-fluid px-lg-4">
+        
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+          <div>
+            <h3 class="fw-bold text-dark mb-1"><i class="fa-solid fa-money-bill-wave text-danger me-2"></i> Daftar Denda Belum Lunas</h3>
+            <p class="text-muted small mb-0">Total <?= count($dataDenda); ?> tagihan denda keterlambatan buku ditemukan</p>
+          </div>
+        </div>
+
+        <!-- Filter Form by Date & Search -->
+        <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+          <form action="" method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label small fw-bold text-muted mb-1"><i class="fa-solid fa-calendar-day text-primary me-1"></i> Dari Tanggal Kembali</label>
+              <input type="date" name="tgl_dari" class="form-control form-control-sm" value="<?= htmlspecialchars($tgl_dari); ?>">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold text-muted mb-1"><i class="fa-solid fa-calendar-check text-primary me-1"></i> Sampai Tanggal Kembali</label>
+              <input type="date" name="tgl_sampai" class="form-control form-control-sm" value="<?= htmlspecialchars($tgl_sampai); ?>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted mb-1"><i class="fa-solid fa-magnifying-glass text-primary me-1"></i> Cari Siswa / Judul</label>
+              <input type="text" name="keyword" class="form-control form-control-sm" placeholder="Nama siswa, NISN, atau judul..." value="<?= htmlspecialchars($keyword); ?>">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+              <button type="submit" class="btn btn-modern-primary btn-sm flex-grow-1">
+                <i class="fa-solid fa-filter me-1"></i> Cek Tanggal
+              </button>
+              <?php if(!empty($tgl_dari) || !empty($tgl_sampai) || !empty($keyword)) : ?>
+                <a href="daftarDenda.php" class="btn btn-modern-secondary btn-sm" title="Reset Filter">
+                  <i class="fa-solid fa-rotate-left"></i>
+                </a>
+              <?php endif; ?>
+            </div>
+          </form>
+        </div>
+
+        <!-- Modern Table -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Buku</th>
+                  <th>Siswa (NISN)</th>
+                  <th>Kelas & Jurusan</th>
+                  <th>Kontak Siswa</th>
+                  <th>Admin Petugas</th>
+                  <th>Tgl Kembali</th>
+                  <th>Keterlambatan</th>
+                  <th>Jumlah Denda</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if(empty($dataDenda)) : ?>
+                  <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                      <i class="fa-solid fa-circle-check fs-2 mb-2 d-block text-success"></i>
+                      Tidak ada tagihan denda pada kriteria atau rentang tanggal yang dipilih.
+                    </td>
+                  </tr>
+                <?php else : ?>
+                  <?php foreach ($dataDenda as $item) : ?>
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <img src="../../imgDB/<?= htmlspecialchars($item["cover"]); ?>" alt="Cover" class="rounded-2 shadow-sm" style="width: 38px; height: 48px; object-fit: cover;" onerror="this.src='../../assets/logoPerpus.jpg'">
+                          <div>
+                            <div class="fw-bold text-dark" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($item["judul"]); ?></div>
+                            <small class="text-muted">ID: <?= htmlspecialchars($item["id_buku"]); ?></small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <img src="../../imgDB/avatar/<?= htmlspecialchars(!empty($item["foto"]) ? $item["foto"] : "default_member.png"); ?>" alt="Foto" class="rounded-circle shadow-sm" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.src='../../assets/memberLogo.png'">
+                          <div>
+                            <div class="fw-bold text-dark text-capitalize"><?= htmlspecialchars($item["nama"]); ?></div>
+                            <small class="text-primary fw-semibold">NISN: <?= htmlspecialchars($item["nisn"]); ?></small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="fw-semibold"><?= htmlspecialchars($item["kelas"]); ?></div>
+                        <small class="text-muted"><?= htmlspecialchars($item["jurusan"]); ?></small>
+                      </td>
+                      <td>
+                        <a href="https://wa.me/<?= preg_replace('/^0/', '62', preg_replace('/[^0-9]/', '', $item["no_tlp"])); ?>" target="_blank" class="badge-status success text-decoration-none">
+                          <i class="fa-brands fa-whatsapp"></i> Hubungi
+                        </a>
+                      </td>
+                      <td>
+                        <span class="badge-status secondary">
+                          <i class="fa-solid fa-user-tie"></i> <?= htmlspecialchars($item["nama_admin"]); ?>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge-status primary">
+                          <i class="fa-solid fa-calendar-check"></i> <?= date('d M Y', strtotime($item["buku_kembali"])); ?>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge-status danger">
+                          <i class="fa-solid fa-triangle-exclamation"></i> <?= htmlspecialchars($item["keterlambatan"]); ?>
+                        </span>
+                      </td>
+                      <td>
+                        <div class="fw-extrabold text-danger fs-6">
+                          Rp <?= number_format($item["denda"], 0, ',', '.'); ?>
+                        </div>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Modern Footer -->
+    <footer class="footer-modern py-3">
+      <div class="container-fluid px-lg-4 d-flex flex-wrap justify-content-between align-items-center small">
+        <p class="mb-0">Created by <span class="text-white fw-bold">Ihsan Maulana Ardianto</span> © 2025</p>
+        <p class="mb-0">SkanicPerpus Admin • v2.0</p>
       </div>
     </footer>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../style/js/script.js"></script>
   </body>
 </html>

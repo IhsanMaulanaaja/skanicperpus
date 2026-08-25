@@ -1,93 +1,130 @@
 <?php
-require "../../config/config.php";
-$buku = queryReadData("SELECT * FROM buku");
+session_start();
 
-// mengaktifkan tombol search engine
-if(isset($_POST["search"]) ) {
-  //buat variabel dan ambil apa saja yg diketikkan user di dalam input dan kirimkan ke function search.
-  $buku = search($_POST["keyword"]);
-  
+if(!isset($_SESSION["signIn"]) || !isset($_SESSION["admin"])) {
+  header("Location: ../../sign/admin/sign_in.php");
+  exit;
+}
+
+require "../../config/config.php";
+
+$buku = queryReadData("SELECT * FROM buku ORDER BY id_buku DESC");
+
+// Mengaktifkan search engine
+$keyword = "";
+if(isset($_POST["search"])) {
+  $keyword = $_POST["keyword"];
+  $buku = search($keyword);
 }
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-     <script src="https://kit.fontawesome.com/de8de52639.js" crossorigin="anonymous"></script>
-     <title>Kelola buku || Admin</title>
+    <title>Kelola Data Buku - Admin SkanicPerpus</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../style/main.css">
+    <link rel="icon" href="../../assets/logoPerpus.jpg" type="image/jpeg">
   </head>
-  <style>
-    .layout-card-custom {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1.5rem;
-    }
-  </style>
   <body>
-  <nav class="navbar fixed-top navbar-expand-lg bg-body-tertiary">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">
-      <img src="../../assets/SkanicLogin.png" alt="logo" width="120px">
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-      <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="../dashboardAdmin.php">Dashboard</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link text-success" href="tambahBuku.php">Tambah Buku</a>
-        </li>
-      </ul>
-    </div>
-  </div>
-</nav>
+    
+    <!-- Modern Admin Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-modern fixed-top">
+      <div class="container-fluid px-lg-4">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="../dashboardAdmin.php">
+          <img src="../../assets/SkanicLogin.png" alt="SkanicPerpus" height="46" onerror="this.src='../../assets/logo_skanic.png'">
+        </a>
 
-    
-<div class="p-4 mt-4">
-      <!--search engine --->
-     <form action="" method="post" class="mt-5">
-       <div class="input-group d-flex justify-content-end mb-3">
-         <input class="border p-2 rounded rounded-end-0 bg-tertiary" type="text" name="keyword" id="keyword" placeholder="cari data buku...">
-         <button class="border border-start-0 bg-light rounded rounded-start-0" type="submit" name="search"><i class="fa-solid fa-magnifying-glass"></i></button>
-       </div>
-      </form>
-       
-       <!--Card buku-->
-       <div class="layout-card-custom">
-       <?php foreach ($buku as $item) : ?>
-       <div class="card" style="width: 15rem;">
-         <img src="../../imgDB/<?= $item["cover"]; ?>" class="card-img-top" alt="coverBuku" height="250px">
-         <div class="card-body">
-           <h5 class="card-title"><?= $item["judul"]; ?></h5>
-          </div>
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item">Kategori : <?= $item["kategori"]; ?></li>
-            <li class="list-group-item">Id Buku : <?= $item["id_buku"]; ?></li>
-          </ul>
-        <div class="card-body">
-          <a class="btn btn-success" href="updateBuku.php?idReview=<?= $item["id_buku"]; ?>" id="review">Edit</a>
-          
-          <a class="btn btn-danger" href="deleteBuku.php?id=<?= $item["id_buku"]; ?>" onclick="return confirm('Yakin ingin menghapus data buku ? ');">Delete</a>
-          </div>
+        <div class="d-flex align-items-center gap-2 ms-auto">
+          <a class="btn btn-modern-secondary d-inline-flex align-items-center gap-2" href="../dashboardAdmin.php">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+          </a>
+          <a class="btn btn-modern-primary d-inline-flex align-items-center gap-2" href="tambahBuku.php">
+            <i class="fa-solid fa-plus"></i> Tambah Buku
+          </a>
         </div>
-       <?php endforeach; ?>
-       </div>
       </div>
-      
-      <footer class="shadow-lg bg-subtle p-3">
-      <div class="container-fluid d-flex justify-content-between">
-      <p class="mt-2">Created by <span class="text-primary">Ihsan Maulana</span> © 2025</p>
-      <p class="mt-2">versi 1.0</p>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+      <div class="container-fluid px-lg-4">
+        
+        <!-- Header & Search -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+          <div>
+            <h3 class="fw-bold text-dark mb-1"><i class="fa-solid fa-book me-2 text-primary"></i> Kelola Koleksi Buku</h3>
+            <p class="text-muted small mb-0">Total <?= count($buku); ?> judul buku terdaftar di katalog perpustakaan</p>
+          </div>
+
+          <form action="" method="post" class="search-bar-modern">
+            <input type="text" name="keyword" placeholder="Cari judul, kategori, pengarang..." value="<?= htmlspecialchars($keyword); ?>" autocomplete="off">
+            <button type="submit" name="search" title="Cari"><i class="fa-solid fa-magnifying-glass"></i></button>
+          </form>
+        </div>
+
+        <!-- Book Cards Grid -->
+        <?php if(empty($buku)) : ?>
+          <div class="empty-state bg-white rounded-4 border p-5">
+            <i class="fa-solid fa-box-open"></i>
+            <h4>Tidak Ada Data Buku</h4>
+            <p>Buku yang Anda cari tidak ditemukan. Coba gunakan kata kunci lain atau tambahkan buku baru.</p>
+            <a href="daftarBuku.php" class="btn btn-modern-secondary mt-3">Reset Pencarian</a>
+          </div>
+        <?php else : ?>
+          <div class="book-grid">
+            <?php foreach ($buku as $item) : ?>
+              <div class="book-card">
+                <div class="book-cover-wrap">
+                  <img src="../../imgDB/<?= htmlspecialchars($item["cover"]); ?>" alt="<?= htmlspecialchars($item["judul"]); ?>" onerror="this.src='../../assets/logoPerpus.jpg'">
+                  <span class="book-badge-category"><?= htmlspecialchars($item["kategori"]); ?></span>
+                </div>
+                <div class="book-content">
+                  <span class="badge-status info mb-2" style="font-size: 0.7rem; align-self: flex-start;">
+                    ID: <?= htmlspecialchars($item["id_buku"]); ?>
+                  </span>
+                  <h6 class="book-title" title="<?= htmlspecialchars($item["judul"]); ?>">
+                    <?= htmlspecialchars($item["judul"]); ?>
+                  </h6>
+                  <p class="book-author">
+                    <i class="fa-solid fa-pen-nib me-1"></i> <?= htmlspecialchars($item["pengarang"]); ?>
+                  </p>
+                  
+                  <div class="book-actions">
+                    <a class="btn btn-modern-secondary btn-sm flex-grow-1" href="updateBuku.php?idReview=<?= urlencode($item["id_buku"]); ?>">
+                      <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                    </a>
+                    <a class="btn btn-modern-danger btn-sm" href="deleteBuku.php?id=<?= urlencode($item["id_buku"]); ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus buku \'<?= addslashes($item["judul"]); ?>\'?');" title="Hapus">
+                      <i class="fa-solid fa-trash"></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
       </div>
-      </footer>
-    
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    </main>
+
+    <!-- Modern Footer -->
+    <footer class="footer-modern py-3">
+      <div class="container-fluid px-lg-4 d-flex flex-wrap justify-content-between align-items-center small">
+        <p class="mb-0">Created by <span class="text-white fw-bold">Ihsan Maulana Ardianto</span> © 2025</p>
+        <p class="mb-0">SkanicPerpus Admin • v2.0</p>
+      </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

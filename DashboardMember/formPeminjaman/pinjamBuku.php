@@ -1,205 +1,202 @@
 <?php 
 session_start();
 
-if(!isset($_SESSION["signIn"]) ) {
+if(!isset($_SESSION["signIn"]) || !isset($_SESSION["member"])) {
   header("Location: ../../sign/member/sign_in.php");
   exit;
 }
+
 require "../../config/config.php";
+
 // Tangkap id buku dari URL (GET)
-$idBuku = $_GET["id"];
+$idBuku = $_GET["id"] ?? "";
 $query = queryReadData("SELECT * FROM buku WHERE id_buku = '$idBuku'");
-//Menampilkan data siswa yg sedang login
+
+if(empty($query)) {
+  header("Location: ../buku/daftarBuku.php");
+  exit;
+}
+
+$bukuItem = $query[0];
+
+// Menampilkan data siswa yg sedang login
 $nisnSiswa = $_SESSION["member"]["nisn"];
-$dataSiswa = queryReadData("SELECT * FROM member WHERE nisn = $nisnSiswa");
+$dataSiswa = queryReadData("SELECT * FROM member WHERE nisn = '$nisnSiswa'")[0] ?? $_SESSION["member"];
 $admin = queryReadData("SELECT * FROM admin");
 
+$successMsg = "";
+$errorMsg = "";
+
 // Peminjaman 
-if(isset($_POST["pinjam"]) ) {
-  
-  if(pinjamBuku($_POST) > 0) {
+if(isset($_POST["pinjam"])) {
+  $res = pinjamBuku($_POST);
+  if($res > 0) {
     echo "<script>
-    alert('Buku berhasil dipinjam');
+    alert('Buku berhasil dipinjam! Silakan periksa daftar pinjaman Anda.');
+    document.location.href = 'TransaksiPeminjaman.php';
     </script>";
-  }else {
-    echo "<script>
-    alert('Buku gagal dipinjam!');
-    </script>";
+    exit;
   }
-  
 }
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-     <script src="https://kit.fontawesome.com/de8de52639.js" crossorigin="anonymous"></script>
-     <title>Form pinjam Buku || Member</title>
+    <title>Form Peminjaman Buku - SkanicPerpus</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../style/main.css">
+    <link rel="icon" href="../../assets/logoPerpus.jpg" type="image/jpeg">
   </head>
-  <style>
-    .layout-card-custom {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1.5rem;
-    }
-  </style>
   <body>
-    <nav class="navbar fixed-top bg-body-tertiary shadow-sm">
-      <div class="container-fluid p-3">
-        <a class="navbar-brand" href="#">
-          <img src="../../assets/SkanicLogin.png" alt="logo" width="120px">
+    
+    <!-- Modern Member Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-modern fixed-top">
+      <div class="container-fluid px-lg-4">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="../dashboardMember.php">
+          <img src="../../assets/SkanicLogin.png" alt="SkanicPerpus" height="46" onerror="this.src='../../assets/logo_skanic.png'">
         </a>
-        
-        <a class="btn btn-tertiary" href="../dashboardMember.php">Dashboard</a>
+
+        <div class="d-flex align-items-center gap-2 ms-auto">
+          <a class="btn btn-modern-secondary d-inline-flex align-items-center gap-2" href="../buku/detailBuku.php?id=<?= urlencode($idBuku); ?>">
+            <i class="fa-solid fa-arrow-left"></i> Kembali
+          </a>
+        </div>
       </div>
     </nav>
-    
-  <div class="p-4 mt-5">
-    <h2 class="mt-5">Form peminjaman Buku</h2>
-    <div class="card">
-      <h5 class="card-header">Data Lengkap buku</h5>
-      <div class="card-body d-flex flex-wrap gap-5 justify-content-center">
-          <?php foreach ($query as $item) : ?>
-        <p class="card-text"><img src="../../imgDB/<?= $item["cover"]; ?>" width="180px" height="185px" style="border-radius: 5px;"></p>
-        <form action="" method="post">
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Id Buku</span>
-            <input type="text" class="form-control" placeholder="id buku" aria-label="Username" aria-describedby="basic-addon1" value="<?= $item["id_buku"]; ?>" readonly>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+      <div class="container" style="max-width: 850px;">
+        
+        <div class="form-card">
+          <div class="text-center mb-4">
+            <span class="badge-status warning mb-2"><i class="fa-solid fa-hand-holding-hand"></i> Peminjaman Buku</span>
+            <h3 class="fw-bold text-dark">Formulir Peminjaman Buku</h3>
+            <p class="text-muted small">Pastikan data diri dan buku yang ingin dipinjam sudah sesuai</p>
+          </div>
+
+          <!-- Book & Student Summary Row -->
+          <div class="row g-3 mb-4">
+            <!-- Book Summary -->
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border h-100 d-flex gap-3 align-items-center">
+                <img src="../../imgDB/<?= htmlspecialchars($bukuItem["cover"]); ?>" alt="Cover" class="rounded-2 shadow-sm" style="width: 70px; height: 90px; object-fit: cover;" onerror="this.src='../../assets/logoPerpus.jpg'">
+                <div>
+                  <span class="badge-status info py-0 px-2 mb-1" style="font-size: 0.7rem;"><?= htmlspecialchars($bukuItem["kategori"]); ?></span>
+                  <h6 class="fw-bold text-dark mb-1" style="line-height: 1.3;"><?= htmlspecialchars($bukuItem["judul"]); ?></h6>
+                  <small class="text-muted d-block">Penulis: <?= htmlspecialchars($bukuItem["pengarang"]); ?></small>
+                  <small class="text-secondary fw-semibold">ID: <?= htmlspecialchars($bukuItem["id_buku"]); ?></small>
+                </div>
+              </div>
             </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Kategori</span>
-            <input type="text" class="form-control" placeholder="kategori" aria-label="kategori" aria-describedby="basic-addon1" value="<?= $item["kategori"]; ?>" readonly>
+
+            <!-- Student Summary -->
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border h-100">
+                <span class="badge-status primary py-0 px-2 mb-1" style="font-size: 0.7rem;">Peminjam</span>
+                <h6 class="fw-bold text-dark text-capitalize mb-1"><?= htmlspecialchars($dataSiswa["nama"]); ?></h6>
+                <small class="text-muted d-block">NISN: <?= htmlspecialchars($dataSiswa["nisn"]); ?> • Kode: <?= htmlspecialchars($dataSiswa["kode_member"]); ?></small>
+                <small class="text-muted d-block"><?= htmlspecialchars($dataSiswa["kelas"]); ?> - <?= htmlspecialchars($dataSiswa["jurusan"]); ?></small>
+              </div>
             </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Judul</span>
-            <input type="text" class="form-control" placeholder="judul" aria-label="judul" aria-describedby="basic-addon1" value="<?= $item["judul"]; ?>" readonly>
+          </div>
+
+          <form action="" method="post" class="needs-validation" novalidate>
+            <!-- Hidden required inputs -->
+            <input type="hidden" name="id_buku" value="<?= htmlspecialchars($bukuItem["id_buku"]); ?>">
+            <input type="hidden" name="nisn" value="<?= htmlspecialchars($dataSiswa["nisn"]); ?>">
+
+            <div class="row g-3">
+              <!-- Petugas Admin Selector -->
+              <div class="col-12">
+                <label for="id_admin" class="form-label">Pilih Petugas Admin Perpustakaan</label>
+                <select name="id" id="id_admin" class="form-select" required>
+                  <option value="" selected disabled>-- Pilih Petugas Admin yang Bertugas --</option>
+                  <?php foreach ($admin as $item) : ?>
+                    <option value="<?= htmlspecialchars($item["id"]); ?>">
+                      Admin: <?= htmlspecialchars($item["nama_admin"]); ?> (Kode: <?= htmlspecialchars($item["kode_admin"]); ?>)
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+                <div class="invalid-feedback">Pilih petugas admin perpustakaan!</div>
+              </div>
+
+              <!-- Tanggal Pinjam & Tanggal Kembali -->
+              <div class="col-md-6">
+                <label for="tgl_peminjaman" class="form-label">Tanggal Pinjam</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-solid fa-calendar-day"></i></span>
+                  <input type="date" name="tgl_peminjaman" id="tgl_peminjaman" class="form-control" value="<?= date('Y-m-d'); ?>" onchange="setReturnDate()" required>
+                  <div class="invalid-feedback">Tentukan tanggal peminjaman!</div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="tgl_pengembalian" class="form-label">Tenggat Pengembalian (Otomatis 7 Hari)</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-solid fa-calendar-check"></i></span>
+                  <input type="date" name="tgl_pengembalian" id="tgl_pengembalian" class="form-control bg-light" value="<?= date('Y-m-d', strtotime('+7 days')); ?>" readonly>
+                </div>
+              </div>
             </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Pengarang</span>
-            <input type="text" class="form-control" placeholder="pengarang" aria-label="pengarang" aria-describedby="basic-addon1" value="<?= $item["pengarang"]; ?>" readonly>
+
+            <!-- Notes Alert -->
+            <div class="alert alert-warning d-flex align-items-center gap-2 p-3 rounded-3 mt-4 mb-3" role="alert">
+              <i class="fa-solid fa-triangle-exclamation fs-5 flex-shrink-0"></i>
+              <div class="small">
+                <strong>Ketentuan Peminjaman:</strong> Maksimal peminjaman adalah 7 hari. Keterlambatan pengembalian buku akan dikenakan denda sesuai peraturan perpustakaan.
+              </div>
             </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Penerbit</span>
-            <input type="text" class="form-control" placeholder="penerbit" aria-label="penerbit" aria-describedby="basic-addon1" value="<?= $item["penerbit"]; ?>" readonly>
+
+            <div class="d-flex gap-2 pt-2">
+              <button type="submit" class="btn btn-modern-primary flex-grow-1 py-2" name="pinjam">
+                <i class="fa-solid fa-check me-1"></i> Konfirmasi & Pinjam Buku
+              </button>
+              <a class="btn btn-modern-secondary py-2" href="../buku/detailBuku.php?id=<?= urlencode($idBuku); ?>">Batal</a>
             </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Tahun Terbit</span>
-            <input type="date" class="form-control" placeholder="tahun_terbit" aria-label="tahun_terbit" aria-describedby="basic-addon1" value="<?= $item["tahun_terbit"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Jumlah Halaman</span>
-            <input type="number" class="form-control" placeholder="jumlah halaman" aria-label="jumlah halaman" aria-describedby="basic-addon1" value="<?= $item["jumlah_halaman"]; ?>" readonly>
-            </div>
-          <div class="form-floating">
-            <textarea class="form-control" placeholder="deskripsi singkat buku" id="floatingTextarea2" style="height: 100px" readonly><?= $item["buku_deskripsi"]; ?></textarea>
-            <label for="floatingTextarea2">Deskripsi Buku</label>
-            </div>
-        <?php endforeach; ?>
-        </form>
-       </div>
-      </div>
-      
-    <div class="card mt-4">
-      <h5 class="card-header">Data lengkap Siswa</h5>
-      <div class="card-body d-flex flex-wrap gap-4 justify-content-center">
-        <p><img src="../../assets/memberLogo.png" width="150px"></p>
-        <form action="" method="post">
-          <?php foreach ($dataSiswa as $item) : ?>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Nisn</span>
-            <input type="number" class="form-control" placeholder="nisn" aria-label="nisn" aria-describedby="basic-addon1" value="<?= $item["nisn"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Kode Member</span>
-            <input type="text" class="form-control" placeholder="kode member" aria-label="kode member" aria-describedby="basic-addon1" value="<?= $item["kode_member"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Nama</span>
-            <input type="text" class="form-control" placeholder="nama" aria-label="nama" aria-describedby="basic-addon1" value="<?= $item["nama"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Jenis Kelamin</span>
-            <input type="text" class="form-control" placeholder="jenis kelamin" aria-label="jenis kelamin" aria-describedby="basic-addon1" value="<?= $item["jenis_kelamin"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Kelas</span>
-            <input type="text" class="form-control" placeholder="kelas" aria-label="kelas" aria-describedby="basic-addon1" value="<?= $item["kelas"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Jurusan</span>
-            <input type="text" class="form-control" placeholder="jurusan" aria-label="jurusan" aria-describedby="basic-addon1" value="<?= $item["jurusan"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">No Tlp</span>
-            <input type="no_tlp" class="form-control" placeholder="no tlp" aria-label="no tlp" aria-describedby="basic-addon1" value="<?= $item["no_tlp"]; ?>" readonly>
-            </div>
-          <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Tanggal Daftar</span>
-            <input type="date" class="form-control" placeholder="tgl_pendaftaran" aria-label="tgl_pendaftaran" aria-describedby="basic-addon1" value="<?= $item["tgl_pendaftaran"]; ?>" readonly>
-            </div>
-        <?php endforeach; ?>
-        </form>
-       </div>
-      </div>
-    
-    <div class="alert alert-danger mt-4" role="alert">Silahkan periksa kembali data diatas, pastikan sudah benar sebelum meminjam buku!. jika ada kesalahan data harap hubungi admin</div>
-    
-    <div class="card mt-4">
-      <h5 class="card-header">Form Pinjam Buku</h5>
-      <div class="card-body">
-        <form action="" method="post">
-          <!--Ambil data id buku-->
-          <?php foreach ($query as $item) : ?>
-           <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Id Buku</span>
-            <input type="text" name="id_buku" class="form-control" placeholder="id buku" aria-label="id_buku" aria-describedby="basic-addon1" value="<?= $item["id_buku"]; ?>" readonly>
-            </div>
-          <?php endforeach; ?>
-        <!-- Ambil data NISN user yang login-->
-        <div class="input-group mb-3">
-            <span class="input-group-text" id="basic-addon1">Nisn</span>
-            <input type="number" name="nisn" class="form-control" placeholder="nisn" aria-label="nisn" aria-describedby="basic-addon1" value="<?php echo htmlentities($_SESSION["member"]["nisn"]); ?>" readonly>
+          </form>
         </div>
-    <!--Ambil data id admin-->
-    <select name="id" class="form-select" aria-label="Default select example">
-      <option selected>Pilih id admin</option>
-      <?php foreach ($admin as $item) : ?>
-      <option><?= $item["id"]; ?></option>
-      <?php endforeach; ?>
-    </select>
-    <div class="input-group mb-3 mt-3">
-            <span class="input-group-text" id="basic-addon1">Tanggal pinjam</span>
-            <input type="date" name="tgl_peminjaman" id="tgl_peminjaman" class="form-control" placeholder="id buku" aria-label="tgl_peminjaman" aria-describedby="basic-addon1" onchange="setReturnDate()" required>
+
       </div>
-    <div class="input-group mb-3 mt-3">
-            <span class="input-group-text" id="basic-addon1">Tenggat Pengembalian</span>
-            <input type="date" name="tgl_pengembalian" id="tgl_pengembalian" class="form-control" placeholder="tgl_pengembalian" aria-label="tgl_pengembalian" aria-describedby="basic-addon1" readonly>
+    </main>
+
+    <!-- Modern Footer -->
+    <footer class="footer-modern py-3">
+      <div class="container-fluid px-lg-4 d-flex flex-wrap justify-content-between align-items-center small">
+        <p class="mb-0">Created by <span class="text-white fw-bold">Ihsan Maulana Ardianto</span> © 2025</p>
+        <p class="mb-0">SkanicPerpus Member • v2.0</p>
       </div>
-      
-    <a class="btn btn-danger" href="../buku/daftarBuku.php"> Batal</a>
-    <button type="submit" class="btn btn-success" name="pinjam">Pinjam</button>
-    </form>
-    </div>
-    </div>
-  
-    <div class="alert alert-danger mt-4" role="alert"><span class="fw-bold">Catatan :</span> Setiap keterlambatan pada pengembalian buku akan dikenakan sanksi berupa denda.</div>
-    
-    </div>
-    
-    <footer class="shadow-lg bg-subtle p-3">
-      <div class="container-fluid d-flex justify-content-between">
-      <p class="mt-2">Created by <span class="text-primary">Ihsan Maulana</span> © 2025</p>
-      <p class="mt-2">versi 1.0</p>
-      </div>
-  </footer>
-    
-    <!--JAVASCRIPT -->
+    </footer>
+
+    <!-- Helper JS -->
     <script src="../../style/js/script.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+      (() => {
+        'use strict'
+        const forms = document.querySelectorAll('.needs-validation')
+        Array.from(forms).forEach(form => {
+          form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+          }, false)
+        })
+      })()
+      // Run once on load
+      setReturnDate();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
